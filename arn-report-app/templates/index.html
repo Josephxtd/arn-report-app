@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ARN Post-Campaign Report Generator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --purple: #5B2C6F;
+      --purple2: #8E44AD;
+      --light: #F5EEF8;
+      --border: #D2B4DE;
+      --white: #ffffff;
+      --grey: #555;
+      --red: #c0392b;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0e8f5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: var(--purple);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(91,44,111,0.4);
+    }
+
+    header .brand {
+      color: white;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    header .sub {
+      color: #E8D5F5;
+      font-size: 13px;
+      font-weight: 400;
+      margin-top: 2px;
+    }
+
+    header .logo {
+      color: white;
+      text-align: right;
+    }
+
+    main {
+      width: 100%;
+      max-width: 780px;
+      padding: 32px 16px 64px;
+    }
+
+    h2 {
+      color: var(--purple);
+      font-size: 18px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(91,44,111,0.12);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-grid .full { grid-column: 1 / -1; }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--grey);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      font-family: inherit;
+      resize: vertical;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 7px;
+      font-size: 14px;
+      color: #222;
+      background: var(--light);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      border-color: var(--purple2);
+      box-shadow: 0 0 0 3px rgba(142,68,173,0.12);
+      background: white;
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      background: var(--light);
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--purple2); background: #ede0f5; }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon { font-size: 36px; margin-bottom: 8px; }
+    .upload-text { color: var(--grey); font-size: 14px; }
+    .upload-text span { color: var(--purple2); font-weight: 600; }
+    .file-name { margin-top: 8px; font-size: 13px; color: var(--purple); font-weight: 600; }
+
+    .ai-badge {
+      font-size: 13px;
+      line-height: 1.5;
+      border-radius: 8px;
+      padding: 11px 14px;
+      margin-bottom: 16px;
+      border: 1.5px solid;
+    }
+    .ai-badge.on  { background: #eafaf1; border-color: #a9dfbf; color: #1e8449; }
+    .ai-badge.off { background: var(--light); border-color: var(--border); color: var(--grey); }
+    .ai-badge code {
+      background: rgba(0,0,0,0.06);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .optional {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--purple2);
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      vertical-align: middle;
+      margin-left: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .lead {
+      font-size: 13.5px;
+      color: var(--grey);
+      line-height: 1.5;
+      margin-bottom: 18px;
+    }
+
+    .detected {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .detected b { color: var(--purple); }
+
+    .btn-generate {
+      display: block;
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--purple), var(--purple2));
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 3px 10px rgba(91,44,111,0.35);
+    }
+
+    .btn-generate:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-generate:active { transform: translateY(0); }
+    .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .status-box {
+      display: none;
+      margin-top: 20px;
+      padding: 14px 18px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-box.loading { background: var(--light); color: var(--purple); border: 1.5px solid var(--border); }
+    .status-box.error   { background: #fdecea; color: var(--red); border: 1.5px solid #f5b7b1; }
+    .status-box.success { background: #eafaf1; color: #1e8449; border: 1.5px solid #a9dfbf; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--purple2);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tip {
+      font-size: 12px;
+      color: #888;
+      margin-top: 5px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">ARN</div>
+    <div class="sub">Post-Campaign Report Generator</div>
+  </div>
+  <div class="logo">Australian Radio Network</div>
+</header>
+
+<main>
+
+  <form id="reportForm" enctype="multipart/form-data">
+
+    <div class="card">
+      <h2>1. Upload ARN Post Times PDF</h2>
+      <p class="lead">
+        Client, package, contract, stations, spot counts, rates and dates are all read
+        straight from the log — you don't need to type any of them.
+      </p>
+
+      <div class="upload-zone" id="dropZone">
+        <input type="file" name="pdf_file" id="pdfFile" accept=".pdf" required />
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Drag &amp; drop or <span>browse</span> to select the ARN Post Times PDF</div>
+        <div class="file-name" id="fileName">No file selected</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Client Context <span class="optional">optional</span></h2>
+
+      {% if ai_ready %}
+      <div class="ai-badge on">
+        <b>Claude narrative is on.</b> The write-up will be researched and written
+        for this client — roughly 5–8&nbsp;cents per report.
+      </div>
+      {% else %}
+      <div class="ai-badge off">
+        <b>Claude narrative is off</b> — reports use the standard template wording.
+        Add your API key to <code>.env</code> and restart to switch it on.
+      </div>
+      {% endif %}
+
+      <p class="lead">
+        A post log records what aired, not what the business does. These few lines let
+        the write-up speak to the client's actual market — leave them blank and it stays
+        accurate, just more general.
+      </p>
+
+      <div class="form-grid">
+        <div>
+          <label>Industry / Business Type</label>
+          <input type="text" name="industry" placeholder="e.g. rural property &amp; livestock agency" />
+        </div>
+        <div>
+          <label>Local Market / Region</label>
+          <input type="text" name="region" placeholder="e.g. Batemans Bay &amp; the Eurobodalla Shire" />
+        </div>
+        <div class="full">
+          <label>Target Audience</label>
+          <input type="text" name="target_audience" placeholder="e.g. landholders and farmers aged 35–65 across the Far South Coast" />
+        </div>
+        <div class="full">
+          <label>Anything else worth knowing</label>
+          <textarea name="notes" rows="2" placeholder="e.g. campaign supported the spring selling season; competing against two local agencies"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <button type="submit" class="btn-generate" id="generateBtn">
+        Generate Post-Campaign Report PDF
+      </button>
+      <div class="status-box" id="statusBox"></div>
+    </div>
+
+  </form>
+
+</main>
+
+<footer>ARN — Australian Radio Network &nbsp;|&nbsp; Internal Tool — Confidential</footer>
+
+<script>
+  const fileInput = document.getElementById('pdfFile');
+  const fileName  = document.getElementById('fileName');
+  const dropZone  = document.getElementById('dropZone');
+  const form      = document.getElementById('reportForm');
+  const statusBox = document.getElementById('statusBox');
+  const genBtn    = document.getElementById('generateBtn');
+
+  fileInput.addEventListener('change', () => {
+    fileName.textContent = fileInput.files[0]?.name || 'No file selected';
+  });
+
+  ['dragover','dragenter'].forEach(ev => {
+    dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(ev => {
+    dropZone.addEventListener(ev, () => dropZone.classList.remove('drag'));
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    if (!fileInput.files[0]) {
+      showStatus('error', 'Please select an ARN Post Times PDF.');
+      return;
+    }
+
+    showStatus('loading', '<span class="spinner"></span> Parsing PDF and generating report — this may take 15–30 seconds…');
+    genBtn.disabled = true;
+
+    const fd = new FormData(form);
+
+    try {
+      const res = await fetch('/generate', { method: 'POST', body: fd });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Unknown error' }));
+        showStatus('error', '⚠ ' + (err.error || 'Generation failed. Check the PDF and try again.'));
+        return;
+      }
+
+      const client   = res.headers.get('X-Detected-Client')   || '';
+      const contract = res.headers.get('X-Detected-Contract') || '';
+      const stations = res.headers.get('X-Detected-Stations') || '';
+      const spots    = res.headers.get('X-Detected-Spots')    || '';
+      const narrative = res.headers.get('X-Narrative')        || '';
+      const narCost   = res.headers.get('X-Narrative-Cost')   || '';
+
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `Post_Campaign_Report_${(client || 'Client').replace(/[^\w\s-]/g,'').replace(/\s+/g,'_')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Show what was read out of the PDF, so a bad parse is obvious immediately.
+      const row = (k, v) => v ? `${k}: <b>${escapeHtml(v)}</b><br>` : '';
+      showStatus('success',
+        '✓ Report generated — your download should start automatically.' +
+        '<div class="detected">' +
+          row('Client', client) +
+          row('Contract', contract) +
+          row('Station(s)', stations) +
+          row('Spots aired', spots) +
+          (narrative === 'claude'
+            ? `Narrative: <b>written by Claude</b> (${'$' + Number(narCost).toFixed(3)})<br>`
+            : narrative === 'template'
+              ? 'Narrative: <b>standard template</b> — set an API key for per-client writing<br>'
+              : '') +
+        '</div>'
+      );
+    } catch (err) {
+      showStatus('error', '⚠ Network error: ' + err.message);
+    } finally {
+      genBtn.disabled = false;
+    }
+  });
+
+  function escapeHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function showStatus(type, html) {
+    statusBox.style.display = 'block';
+    statusBox.className = 'status-box ' + type;
+    statusBox.innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
